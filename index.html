@@ -330,7 +330,7 @@
                 <div class="actions no-print">
                     <button type="submit">Beräkna</button>
                 </div>
-                <p class="muted no-print">Tips: Fälten sparas lokalt i din webbläsare.</p>
+                
                 
             </form>
         </section>
@@ -376,11 +376,13 @@
         const num = (v,f=0) => { const x = parseFloat(String(v).replace(/\s/g,'')); return Number.isFinite(x)?x:f; };
 
         function compute({lon, agPct, afStod, socStod}) {
-            // Sätter en gräns på max 20 000 kr för beräkning av stöd från Arbetsförmedlingen
-            const lonForAfCalc = Math.min(lon, 20000);
-            const agBeloppForAf = Math.max(0, lonForAfCalc) * Math.max(0, agPct) / 100;
+            const agPctEmployer = 42; // 42% för total lönekostnad
+            const agPctAf = agPct; // 31.42% från input för Af-stöd
 
-            const agBelopp = Math.max(0, lon) * Math.max(0, agPct) / 100;
+            const lonForAfCalc = Math.min(lon, 20000);
+            const agBeloppForAf = Math.max(0, lonForAfCalc) * Math.max(0, agPctAf) / 100;
+
+            const agBelopp = Math.max(0, lon) * Math.max(0, agPctEmployer) / 100;
             
             let afBelopp = 0;
             switch(afStod) {
