@@ -273,7 +273,7 @@
                             <input id="arbetsplats" name="arbetsplats" type="text" placeholder="Enhet/arbetsplats" />
                         </div>
                         <div>
-                            <label for="ame">AME</label>
+                            <label for="ame">IFO</label>
                             <input id="ame" name="ame" type="text" placeholder="För- och efternamn" />
                         </div>
                         <div>
@@ -321,7 +321,7 @@
                             </select>
                         </div>
                         <div>
-                            <label for="socstod"> Stöd IFO (kr/mån)</label>
+                            <label for="socstod">Stöd IFO (kr/mån)</label>
                             <input id="socstod" type="number" min="0" step="100" value="12000" />
                         </div>
                     </div>
@@ -353,11 +353,10 @@
     <div class="signatures">
         <h2>Överenskommelse om bidragsväxling</h2>
         <p>Denna överenskommelse om bidragsväxling är ett samarbete mellan:</p>
-	<br>
-	<br>
+        <br>
         <div class="signature-row">
             <div class="signature-item">
-                <p><strong>IFO</strong></p>
+                <p><strong>Arbetsmarknadsenheten</strong></p>
                 <p>Namnförtydligande: <span id="sign-ame"></span></p>
             </div>
             <div class="signature-item">
@@ -377,21 +376,25 @@
         const num = (v,f=0) => { const x = parseFloat(String(v).replace(/\s/g,'')); return Number.isFinite(x)?x:f; };
 
         function compute({lon, agPct, afStod, socStod}) {
-            const agBelopp = Math.max(0,lon) * Math.max(0,agPct) / 100;
+            // Sätter en gräns på max 20 000 kr för beräkning av stöd från Arbetsförmedlingen
+            const lonForAfCalc = Math.min(lon, 20000);
+            const agBeloppForAf = Math.max(0, lonForAfCalc) * Math.max(0, agPct) / 100;
+
+            const agBelopp = Math.max(0, lon) * Math.max(0, agPct) / 100;
             
             let afBelopp = 0;
             switch(afStod) {
                 case 'ny-1x':
-                    afBelopp = agBelopp;
+                    afBelopp = agBeloppForAf;
                     break;
                 case 'ny-2x':
-                    afBelopp = agBelopp * 2;
+                    afBelopp = agBeloppForAf * 2;
                     break;
                 case 'ny-2.5x':
-                    afBelopp = agBelopp * 2.5;
+                    afBelopp = agBeloppForAf * 2.5;
                     break;
                 case 'introduktion':
-                    afBelopp = lon * 0.8;
+                    afBelopp = lonForAfCalc * 0.8;
                     break;
             }
 
