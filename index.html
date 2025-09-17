@@ -201,7 +201,6 @@
             line-height: 1.3;
         }
         
-        /* -- UTSKRIFTSSTILAR -- */
         @media print {
             body {
                 background: #fff;
@@ -286,7 +285,7 @@
                         </div>
                         <div>
                             <label for="kontakt">Kontaktuppgifter</label>
-                            <input id="kontakt" name="kontakt" type="text" placeholder="Telefon / e‑post" />
+                            <input id="kontakt" name="kontakt" type="text" placeholder="Telefon / e-post" />
                         </div>
                         <div>
                             <label for="startdatum">Anst. startdatum</label>
@@ -330,8 +329,6 @@
                 <div class="actions no-print">
                     <button type="submit">Beräkna</button>
                 </div>
-                
-                
             </form>
         </section>
 
@@ -341,7 +338,12 @@
                 Fyll i uppgifterna; resultatet uppdateras automatiskt.
             </div>
 
+            <!-- Flyttad texten hit -->
             <p class="muted no-print">Belopp visas per månad i SEK.</p>
+
+            <div style="display:flex; align-items:center; gap:20px; margin-top:20px;">
+                <canvas id="kostnadsDiagram" width="250" height="250"></canvas>
+            </div>
 
             <div class="actions" id="result-actions">
                 <button type="button" id="btn-print">Spara som PDF / Skriv ut</button>
@@ -369,42 +371,32 @@
 
     <div class="footer">Överenskommelse Bidragsväxling – genererad lokalt i din webbläsare.</div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // ------- Hjälp & beräkning -------
         const SEK = new Intl.NumberFormat('sv-SE',{style:'currency',currency:'SEK',maximumFractionDigits:0});
         const fmt = v => SEK.format(Math.round(v||0));
         const num = (v,f=0) => { const x = parseFloat(String(v).replace(/\s/g,'')); return Number.isFinite(x)?x:f; };
 
         function compute({lon, agPct, afStod, socStod}) {
-            const agPctEmployer = 42; // 42% för total lönekostnad
-            const agPctAf = agPct; // 31.42% från input för Af-stöd
-
+            const agPctEmployer = 42;
+            const agPctAf = agPct;
             const lonForAfCalc = Math.min(lon, 20000);
             const agBeloppForAf = Math.max(0, lonForAfCalc) * Math.max(0, agPctAf) / 100;
-
             const agBelopp = Math.max(0, lon) * Math.max(0, agPctEmployer) / 100;
             
             let afBelopp = 0;
             switch(afStod) {
-                case 'ny-1x':
-                    afBelopp = agBeloppForAf;
-                    break;
-                case 'ny-2x':
-                    afBelopp = agBeloppForAf * 2;
-                    break;
-                case 'ny-2.5x':
-                    afBelopp = agBeloppForAf * 2.5;
-                    break;
-                case 'introduktion':
-                    afBelopp = lonForAfCalc * 0.8;
-                    break;
+                case 'ny-1x': afBelopp = agBeloppForAf; break;
+                case 'ny-2x': afBelopp = agBeloppForAf * 2; break;
+                case 'ny-2.5x': afBelopp = agBeloppForAf * 2.5; break;
+                case 'introduktion': afBelopp = lonForAfCalc * 0.8; break;
             }
 
             const totalKostnad = Math.max(0,lon) + agBelopp;
             const totalStod = Math.max(0,afBelopp) + Math.max(0,socStod);
             const slutkostnad = Math.max(0,totalKostnad - totalStod);
             
-            return {agBelopp,totalKostnad,totalStod,slutkostnad};
+            return {agBelopp,totalKostnad,totalStod,slutkostnad,afBelopp,socStod};
         }
 
         function renderResult(r){
@@ -412,8 +404,41 @@
                 <div class="result-row"><strong>Arbetsgivaravgift:</strong><span>${fmt(r.agBelopp)} / mån</span></div>
                 <div class="result-row"><strong>Total kostnad:</strong><span>${fmt(r.totalKostnad)} / mån</span></div>
                 <div class="result-row"><strong>Totalt stöd:</strong><span>${fmt(r.totalStod)} / mån</span></div>
-                <div class="result-row"><strong>Slutgiltig kostnad:</strong><span>${fmt(r.slutkostnad)} / mån</span></div>
+                <div class="result-row"><strong>Slutgiltig kostnad (arbetsgivarens insats):</strong><span>${fmt(r.slutkostnad)} / mån</span></div>
             `;
+        }
+
+        let chart;
+        function renderChart({socStod, afBelopp, slutkostnad}) {
+            const ctx = document.getElementById('kostnadsDiagram').getContext('2d');
+            const data = {
+                labels: ['IFO:s insats', 'Arbetsförmedlingens insats', 'Arbetsgivarens insats'],
+                datasets: [{
+                    data: [socStod, afBelopp, slutkostnad],
+                    backgroundColor: ['#50c878','#f5a623','#4a90e2']
+                }]
+            };
+            if (chart) {
+                chart.data = data;
+                chart.update();
+            } else {
+                chart = new Chart(ctx, {
+                    type: 'pie',
+                    data: data,
+                    options: {
+                        responsive: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    boxWidth: 20,
+                                    padding: 12
+                                }
+                            }
+                        }
+                    }
+                });
+            }
         }
 
         function updateSignatures(data) {
@@ -435,8 +460,7 @@
                 lon: num(document.getElementById('bruttolon').value,0),
                 agPct: num(document.getElementById('agavgift').value,0),
                 afStod: document.getElementById('stodform').value,
-                socStod: num(document.getElementById('socstod').value,0),
-                stodformText: document.getElementById('stodform').selectedOptions[0]?.text || ''
+                socStod: num(document.getElementById('socstod').value,0)
             };
         }
         
@@ -445,6 +469,7 @@
             const data = readForm();
             const result = compute(data);
             renderResult(result);
+            renderChart(result);
             updateSignatures(data);
             try{ localStorage.setItem('bvx-data', JSON.stringify(data)); }catch{}
         }
@@ -461,30 +486,18 @@
             } catch {}
         }
 
-        // ------- Event Listeners -------
-        const formEl = document.getElementById('bvx-form');
-        formEl.addEventListener('input', performCalc);
-        formEl.addEventListener('submit', performCalc);
-
-        document.getElementById('btn-print').addEventListener('click', () => {
-            window.print();
-        });
-        
-        document.getElementById('btn-reset').addEventListener('click', ()=>{
-            if (confirm('Är du säker på att du vill rensa alla fält?')) {
+        document.getElementById('bvx-form').addEventListener('submit', performCalc);
+        document.getElementById('btn-print').addEventListener('click', () => window.print());
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            if(confirm('Vill du rensa alla fält?')){
                 localStorage.removeItem('bvx-data');
-                formEl.reset();
-                document.getElementById('datum').value = new Date().toISOString().slice(0, 10);
-                document.getElementById('resultat').textContent = 'Fyll i uppgifterna; resultatet uppdateras automatiskt.';
-                performCalc();
+                document.getElementById('bvx-form').reset();
+                location.reload();
             }
         });
-
-        window.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('datum').value = new Date().toISOString().slice(0, 10);
-            loadFromStorage();
-            performCalc();
-        });
+        
+        loadFromStorage();
+        performCalc();
     </script>
 </body>
 </html>
