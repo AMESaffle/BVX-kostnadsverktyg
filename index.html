@@ -339,7 +339,7 @@
             </div>
 
             <!-- Flyttad texten hit -->
-            <p> "Arbetsgivaravgift samt semesterlön samt övriga avgifter, uppgår i dagsläget till ca 42% och och har tagits med i beräkningen. Arbetförmedlingen räknar på enbart arbetsgivaravgift som underlag till beräkning av ersättning inom Nystartsjobb" </p>
+            <p> "Arbetsgivaravgift samt semesterlön samt övriga avgifter, uppgår i dagsläget till ca 42% och och har tagits med i beräkningen. Arbetförmedlingen räknar på enbart arbetsgivaravgift (31,42%) som underlag till beräkning av ersättning inom Nystartsjobb" </p>
             <p class="muted no-print">Belopp visas per månad i SEK.</p>
 
 
@@ -414,7 +414,7 @@
         function renderChart({socStod, afBelopp, slutkostnad}) {
             const ctx = document.getElementById('kostnadsDiagram').getContext('2d');
             const data = {
-                labels: ['IFO:s insats', 'Arbetsförmedlingens insats', 'Arbetsgivarens insats'],
+                labels: ['IFO:s insats', 'AF insats', 'AG insats'],
                 datasets: [{
                     data: [socStod, afBelopp, slutkostnad],
                     backgroundColor: ['#50c878','#f5a623','#4a90e2']
